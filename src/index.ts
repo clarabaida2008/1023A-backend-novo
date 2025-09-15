@@ -44,8 +44,8 @@ app.get("/", async (req: Request, res: Response) => {
         res.status(500).send("Erro ao conectar com o banco de dados: " + error);
     }
     
-    
 });
+
 app.listen(8000, () => {
     console.log("Server is running on port 8000");
 })
