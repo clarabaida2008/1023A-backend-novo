@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { db } from "../database/banco-mongo.js";
+import { ObjectId } from 'mongodb';
 
 interface ItemCarrinho {
     produtoId: string;
@@ -13,54 +14,51 @@ interface Carrinho {
     dataAtualizacao: Date;
     total: number;
 }
+
 class CarrinhoController {
-    async adicionarItem(req: Request, res: Response) {
-        const { produtoId, quantidade, precoUnitario, nome, usuarioId } = req.body;
-        const carrinhos = db.collection('carrinho');
+    async adicionarCarrinho(req: Request, res: Response) {
+        const { usuarioId, itens, dataAtualizacao, total } = req.body;
+        console.log(usuarioId, itens, dataAtualizacao, total);
+        res.json({ message: 'Carrinho adicionado com sucesso!' });
 
-        // 1. Verificar se um carrinho com esse usuário já existe
-        let carrinho = await carrinhos.findOne({ usuarioId });
+        //Verificar se um carrinho com o usuário já existe
+        const carrinho = await db.collection('carrinhos').find({ _id: ObjectId.createFromHexString(usuarioId) }).toArray();
 
-        // 2. Se não existir criar um novo carrinho
-        if (!carrinho) {
-            let carrinho = {
-                usuarioId,
-                itens: [],
-                dataAtualizacao: new Date(),
-                total: 0
-            };
+        if (carrinho.length === 0) {
+            const data = new Date();
+            const resultado = await db.collection("carrinhos").insertOne({usuarioId: usuarioId,itens: [],total: 0,dataAtualizacao: data})
+        
+            return res.status(201).json({_id: resultado.insertedId, usuarioId, itens: [], total: 0, dataAtualizacao: data});
         }
-        else {
-
-            // 3. Adicionar o item ao carrinho existente
-            carrinho.itens.push({ produtoId, quantidade, precoUnitario, nome });
-
-            // 4. Calcular o total do carrinho
-            carrinho.total = carrinho.itens.reducecarrinho.total = carrinho.itens.reduce(
-                (acc: number, item: ItemCarrinho) => acc + item.quantidade * item.precoUnitario,0);
-
-            // 5. Atualizar a data de atualização do carrinho
-            carrinho.dataAtualizacao = new Date();
-
-            // 6. Salvar o carrinho
-            await carrinhos.updateOne(
-                { usuarioId },
-                {
-                    $set: {
-                        itens: carrinho.itens,
-                        dataAtualizacao: carrinho.dataAtualizacao,
-                        total: carrinho.total
-                    }
-                },
-                { upsert: true }
-            );
-
-            res.status(200).json(carrinho);
-        }
-
-
-
+        return res.status(201).json(carrinho );
     }
+    
+    //adicionarItem
+    async adicionarItem(req: Request, res: Response) {
+        const { usuarioId, produtoId, quantidade, precoUnitario, nome } = req.body;
+        console.log(usuarioId, produtoId, quantidade, precoUnitario, nome);
+        res.json({ message: 'Item adicionado ao carrinho com sucesso!' });
+
+        //Buscar o produto no banco de dados
+        const produto = await db.collection('produtos').find({ _id: ObjectId.createFromHexString(produtoId) }).toArray();
+
+        if (produto.length === 0) {
+            return res.status(404).json({ message: 'Produto não encontrado' });
+        }
+
+        //Verificar se um carrinho com o usuário já existe
+        const carrinho = await db.collection('carrinhos').find({ _id: ObjectId.createFromHexString(usuarioId) }).toArray();
+
+        if (carrinho.length === 0) {
+            return res.status(404).json({ message: 'Carrinho não existente' });
+            await this.adicionarCarrinho(req, res);
+        }
+    }
+
+    //const carrinho = await db.collection
+
+}
+
     //adicinarItem
     //ApagarItem
     //AtualizarQuantidade
