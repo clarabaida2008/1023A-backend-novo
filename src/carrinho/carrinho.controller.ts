@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { db } from "../database/banco-mongo.js";
-import { ObjectId } from 'mongodb';
+import { ObjectId } from 'bson';
 
 interface ItemCarrinho {
     produtoId: string;
@@ -16,55 +16,43 @@ interface Carrinho {
 }
 
 class CarrinhoController {
-    async adicionarCarrinho(req: Request, res: Response) {
-        const { usuarioId, itens, dataAtualizacao, total } = req.body;
-        console.log(usuarioId, itens, dataAtualizacao, total);
-        res.json({ message: 'Carrinho adicionado com sucesso!' });
-
-        //Verificar se um carrinho com o usuário já existe
-        const carrinho = await db.collection('carrinhos').find({ _id: ObjectId.createFromHexString(usuarioId) }).toArray();
-
-        if (carrinho.length === 0) {
-            const data = new Date();
-            const resultado = await db.collection("carrinhos").insertOne({usuarioId: usuarioId,itens: [],total: 0,dataAtualizacao: data})
-        
-            return res.status(201).json({_id: resultado.insertedId, usuarioId, itens: [], total: 0, dataAtualizacao: data});
-        }
-        return res.status(201).json(carrinho );
-    }
-    
-    //adicionarItem
     async adicionarItem(req: Request, res: Response) {
-        const { usuarioId, produtoId, quantidade, precoUnitario, nome } = req.body;
-        console.log(usuarioId, produtoId, quantidade, precoUnitario, nome);
-        res.json({ message: 'Item adicionado ao carrinho com sucesso!' });
+        const { usuarioId, produtoId, precoUnitario, quantidade, nome } = req.body;
+        //Fazer uma validação dos dados enviados
 
-        //Buscar o produto no banco de dados
-        const produto = await db.collection('produtos').find({ _id: ObjectId.createFromHexString(produtoId) }).toArray();
+        //Vendo se o carrinho já existe no banco
+        const carrinho = await db.collection("carrinho").findOne({ usuarioId: ObjectId.createFromHexString(usuarioId) });
 
-        if (produto.length === 0) {
-            return res.status(404).json({ message: 'Produto não encontrado' });
-        }
+        if (!carrinho) {
+            const carrinhoNovo:Carrinho = {
+                usuarioId:usuarioId,
+                itens: [{
+                    produtoId: produtoId,
+                    nome: nome,
+                    quantidade: quantidade,
+                    precoUnitario: precoUnitario,
+                }],
+                total: quantidade * precoUnitario,
+                dataAtualizacao: new Date()
+            }
 
-        //Verificar se um carrinho com o usuário já existe
-        const carrinho = await db.collection('carrinhos').find({ _id: ObjectId.createFromHexString(usuarioId) }).toArray();
+            //Salvando o carrinho novo no banco de dados
+            await db.collection<Carrinho>("carrinho").insertOne(carrinhoNovo);
+        } else {
+            //Verificar se o produto já existe no carrinho
+            const item = carrinho.itens.find((item: ItemCarrinho) => item.produtoId === produtoId);
+            if (!item) {
+                const itemNovo = { usuarioId, produtoId, precoUnitario, quantidade, nome };
+                carrinho.itens.push(itemNovo);
+                //Fazer função de atualizar a data e o valor total no carrinho --> usar todos os itens para calcular o total
+                //termina com update set updateOne({usuarioId: ObjectId.createFromHexString(usuarioId)}, $set{itens, total, data})
 
-        if (carrinho.length === 0) {
-            return res.status(404).json({ message: 'Carrinho não existente' });
-            await this.adicionarCarrinho(req, res);
+            } else {
+                item.quantidade += quantidade;
+                //calcular o total e a nova data de modificação
+                //termina com update set
+            }
         }
     }
-
-    //const carrinho = await db.collection
-
 }
-
-    //adicinarItem
-    //ApagarItem
-    //AtualizarQuantidade
-    //Listar
-    //Apagar Carrinho
-    //Um carrinho para cada usuário, um tipo de poduto por carrinho ()
-}
-
 export default new CarrinhoController();
