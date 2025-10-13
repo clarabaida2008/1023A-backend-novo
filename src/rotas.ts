@@ -10,8 +10,12 @@ rotas.post('/usuarios', usuarioController.adicionar);
 rotas.get('/usuarios', usuarioController.listar);
 
 rotas.post('/produtos', produtoController.adicionar);
-rotas.get('/produtos', produtoController.listar);
+rotas.post('/atualizarQuantidade', carrinhoController.atualizarQuantidade);
 
 rotas.post('/adicionarItem', carrinhoController.adicionarItem);
+rotas.post('/removerItem', carrinhoController.removerItem);
+rotas.post('/atualizarQuantidade', carrinhoController.atualizarQuantidade);
+rotas.get('/listar', carrinhoController.listar);
+rotas.post('/apagarCarrinho', carrinhoController.apagarCarrinho);
 
 export default rotas;
