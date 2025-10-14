@@ -6,6 +6,6 @@ import { Request, Router, Response, NextFunction } from "express";
 const rotasNaoAutenticadas = Router();
 
 //Criando rotas para os usuários
-rotasNaoAutenticadas.post("/usuarios", usuarioController.login)
+rotasNaoAutenticadas.post("/login", usuarioController.login)
 
 export default rotasNaoAutenticadas;

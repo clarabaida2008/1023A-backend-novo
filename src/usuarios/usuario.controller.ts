@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from "../database/banco-mongo.js";
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 class UsuarioController {
     async adicionar(req: Request, res: Response) {
@@ -15,10 +16,12 @@ class UsuarioController {
             res.status(201).json({ ...usuario, _id: resultado.insertedId })
         }
     }
+
     async listar(req: Request, res: Response) {
         const usuarios = await db.collection('usuarios').find().toArray();
         res.status(200).json(usuarios);
     }
+
     async login(req: Request, res: Response) {
         //Recebe email e senha
         const {email, senha} = req.body
@@ -26,10 +29,15 @@ class UsuarioController {
             return res.status(400).json({ mensagem: "Email e senha são obrigatórios" });
         }
         //Verifica se estão corretos
-        const usuário = await db.collection("usuarios").findOne({email});
-        
+        const usuario = await db.collection("usuarios").findOne({email});
+        if (!usuario) {
+            return res.status(400).json({mensagem: "Email ou senha inválidos"});
+        }
         //Criar um tolken
+        const token = jwt.sign({usuarioId:usuario._id},process.env.JWT_SECRET!,{expiresIn: '1h'});
+
         //Devolve o token
+        res.status(200).json({token});
     }
 }
 export default new UsuarioController();
